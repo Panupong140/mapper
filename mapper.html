@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width">
+<style>
+video, canvas { width:100%; }
+</style>
+</head>
+<body>
+
+<video id="v" autoplay playsinline></video>
+<canvas id="c"></canvas>
+<button onclick="exportJSON()">EXPORT</button>
+
+<script>
+const v = document.getElementById("v");
+const c = document.getElementById("c");
+const ctx = c.getContext("2d");
+
+let map = [];
+let index = 0;
+
+navigator.mediaDevices.getUserMedia({ video: { facingMode:"environment" } })
+.then(s => v.srcObject = s);
+
+setInterval(() => {
+  c.width = v.videoWidth;
+  c.height = v.videoHeight;
+  ctx.drawImage(v,0,0);
+
+  let d = ctx.getImageData(0,0,c.width,c.height).data;
+  let max = 0, x=0, y=0;
+
+  for(let i=0;i<d.length;i+=4){
+    let b = d[i]+d[i+1]+d[i+2];
+    if(b > max){
+      max = b;
+      let p = i/4;
+      x = p % c.width;
+      y = Math.floor(p / c.width);
+    }
+  }
+
+  if(max > 600){   // threshold กัน noise
+    map.push({ index, x, y });
+    console.log(index, x, y);
+    index++;
+  }
+
+}, 250);
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(map,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "mapping.json";
+  a.click();
+}
+</script>
+
+</body>
+</html>
